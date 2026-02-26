@@ -1,0 +1,58 @@
+services:
+  # ── FastAPI backend ───────────────────────────────────────────────────────────
+  - type: web
+    name: trigradar-api
+    runtime: python
+    rootDir: apps/api
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: trigradar-app-db
+          property: connectionString
+      - key: WAREHOUSE_URL
+        fromDatabase:
+          name: trigradar-dw-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: trigradar-redis
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: INTERNAL_API_TOKEN
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: '["https://tripradar-two.vercel.app","https://www.trigradar.fr"]'
+      # Set these manually in Render dashboard after deploy:
+      - key: AMADEUS_CLIENT_ID
+        sync: false
+      - key: AMADEUS_CLIENT_SECRET
+        sync: false
+      - key: AMADEUS_ENV
+        value: production
+
+  # ── Redis ─────────────────────────────────────────────────────────────────────
+  - type: redis
+    name: trigradar-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  # ── App DB (users, auth, alerts) ──────────────────────────────────────────────
+  - name: trigradar-app-db
+    databaseName: trigradar
+    plan: free
+
+  # ── Warehouse DB (bronze/silver/gold flight data) ─────────────────────────────
+  - name: trigradar-dw-db
+    databaseName: trigradar_dw
+    plan: free
