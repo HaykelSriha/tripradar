@@ -1,0 +1,28 @@
+# dbt connection profiles
+# In CI/CD: override via environment variables or --profiles-dir flag
+# Never commit real credentials — this file uses env vars.
+
+trigradar:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_HOST', 'localhost') }}"
+      port: 5432
+      user: "{{ env_var('DBT_USER', 'postgres') }}"
+      pass: "{{ env_var('DBT_PASS', 'postgres') }}"
+      dbname: trigradar_dw
+      schema: public
+      threads: 4
+      keepalives_idle: 0
+
+    prod:
+      type: postgres
+      host: "{{ env_var('DBT_HOST') }}"
+      port: 5432
+      user: "{{ env_var('DBT_USER') }}"
+      pass: "{{ env_var('DBT_PASS') }}"
+      dbname: trigradar_dw
+      schema: public
+      threads: 8
+      keepalives_idle: 0

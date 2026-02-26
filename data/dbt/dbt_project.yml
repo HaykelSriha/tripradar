@@ -1,0 +1,42 @@
+name: trigradar
+version: "1.0.0"
+config-version: 2
+
+profile: trigradar
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+analysis-paths: ["analyses"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  trigradar:
+    silver:
+      +materialized: incremental
+      +incremental_strategy: merge
+
+    gold:
+      +materialized: table
+      +post-hook:
+        - "ANALYZE {{ this }}"  # update planner statistics after each full refresh
+
+vars:
+  # French departure airports (IATA) — used in DAGs and dbt seeds
+  french_airports:
+    - CDG
+    - ORY
+    - LYS
+    - MRS
+    - BOD
+    - NTE
+    - NCE
+    - TLS
+    - LIL
+
+  # Price history window for route stats
+  price_history_days: 90

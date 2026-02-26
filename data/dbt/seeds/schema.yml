@@ -1,0 +1,56 @@
+version: 2
+
+seeds:
+  - name: ref_airports
+    description: >
+      Reference table mapping IATA airport codes to city/country names (French
+      and English), flag emoji country codes, and metadata used in deal scoring.
+    config:
+      column_types:
+        is_french_departure: boolean
+        is_popular_dest: boolean
+        popularity_tier: integer
+    columns:
+      - name: iata
+        description: IATA 3-letter airport code (primary key)
+        tests:
+          - not_null
+          - unique
+      - name: city
+        tests:
+          - not_null
+      - name: city_fr
+        description: French name for the city (displayed to users)
+        tests:
+          - not_null
+      - name: country
+        tests:
+          - not_null
+      - name: country_fr
+        description: French name for the country
+        tests:
+          - not_null
+      - name: flag
+        description: ISO 3166-1 alpha-2 country code used to render flag emoji
+        tests:
+          - not_null
+      - name: is_french_departure
+        description: True if this is a French airport used as a departure point
+        tests:
+          - not_null
+      - name: is_popular_dest
+        description: True if this is a popular EU destination for French travellers
+        tests:
+          - not_null
+      - name: popularity_tier
+        description: >
+          Destination popularity tier used in deal scoring.
+          0 = French departure (not a destination)
+          1 = Top tier  (Prague, Lisbon, Barcelona…) → 10 deal-score points
+          2 = Mid tier  (Warsaw, Berlin, Seville…)   → 7 deal-score points
+          3 = Other EU                               → 5 deal-score points
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2, 3]

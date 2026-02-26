@@ -1,0 +1,47 @@
+# Web framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+gunicorn==23.0.0
+
+# Database
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+psycopg2-binary==2.9.10
+
+# Settings
+pydantic==2.10.3
+pydantic-settings==2.6.1
+email-validator==2.2.0
+
+# Auth
+passlib[argon2]==1.7.4
+python-jose[cryptography]==3.3.0
+python-multipart==0.0.18
+
+# Background tasks
+celery[redis]==5.4.0
+redis==5.2.1
+
+# HTTP client (Google OAuth token verify + internal calls)
+httpx==0.28.1
+
+# Firebase (push notifications)
+firebase-admin==6.6.0
+
+# Email
+resend==2.4.0
+
+# Utilities
+python-dateutil==2.9.0
+
+# Rate limiting
+slowapi==0.1.9
+
+# Monitoring / error tracking
+sentry-sdk[fastapi]==2.19.2
+
+# Dev / testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0

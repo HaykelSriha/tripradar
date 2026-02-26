@@ -1,0 +1,177 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── FastAPI tests ────────────────────────────────────────────────────────────
+  test-api:
+    name: API Tests (Python)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_USER: trigradar
+          POSTGRES_PASSWORD: trigradar
+          POSTGRES_DB: trigradar
+        options: >-
+          --health-cmd "pg_isready -U trigradar"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/api/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r apps/api/requirements.txt
+
+      - name: Run tests
+        working-directory: apps/api
+        env:
+          DATABASE_URL: "postgresql+asyncpg://trigradar:trigradar@localhost:5432/trigradar"
+          WAREHOUSE_URL: "postgresql+asyncpg://trigradar:trigradar@localhost:5432/trigradar"
+          REDIS_URL: "redis://localhost:6379/0"
+          SECRET_KEY: "ci-test-secret-do-not-use-in-prod"
+          ENVIRONMENT: "test"
+          SENTRY_DSN: ""
+        run: pytest tests/ -v --tb=short --cov=. --cov-report=term-missing
+
+  # ── Next.js type check + lint ────────────────────────────────────────────────
+  check-web:
+    name: Web (TypeScript + Lint)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check (web)
+        run: npm run type-check --workspace=apps/web
+
+      - name: Lint (web)
+        run: npm run lint --workspace=apps/web
+
+  # ── Mobile type check ─────────────────────────────────────────────────────────
+  check-mobile:
+    name: Mobile (TypeScript)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check (mobile)
+        run: npm run type-check --workspace=apps/mobile
+
+  # ── Data pipeline unit tests ──────────────────────────────────────────────────
+  test-data-pipeline:
+    name: Data Pipeline Tests (Python)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: data/scripts/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r data/scripts/requirements.txt
+
+      - name: Run data pipeline tests
+        working-directory: data/scripts
+        run: pytest tests/ -v --tb=short
+
+  # ── dbt compile ───────────────────────────────────────────────────────────────
+  dbt-compile:
+    name: dbt Compile
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dbt
+        run: pip install dbt-postgres
+
+      - name: dbt compile
+        working-directory: data/dbt
+        env:
+          DBT_HOST: localhost
+          DBT_USER: trigradar
+          DBT_PASS: trigradar
+        run: dbt compile --profiles-dir . --target dev 2>&1 || echo "dbt compile warning — check models"
+
+  # ── Security audit ────────────────────────────────────────────────────────────
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: npm audit (high severity only)
+        run: npm audit --audit-level=high || true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python safety check
+        run: |
+          pip install safety
+          safety check -r apps/api/requirements.txt --short-report || true

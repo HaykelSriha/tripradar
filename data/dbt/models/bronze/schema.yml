@@ -1,0 +1,74 @@
+version: 2
+
+# Bronze layer = source declarations only.
+# Tables are created by the data ingestion script (setup_bronze_tables),
+# not by dbt. dbt treats them as external sources.
+
+sources:
+  - name: bronze
+    description: Raw, unmodified flight data ingested by the Python pipeline.
+    schema: public
+
+    tables:
+      - name: bronze_flight_prices
+        description: >
+          Raw round-trip flight records from the Amadeus API.
+          Append-only. Never modify data in this table.
+          Deduplication via flight_hash (MD5 of source+route+date+price).
+
+        freshness:
+          warn_after: {count: 7, period: hour}
+          error_after: {count: 13, period: hour}
+        loaded_at_field: fetched_at
+
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: flight_hash
+            description: MD5 dedup key -- unique across all sources
+            tests: [not_null, unique]
+          - name: source
+            description: API source ('amadeus')
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['kiwi', 'amadeus', 'ryanair', 'easyjet']
+          - name: origin
+            description: Departure IATA airport code
+            tests: [not_null]
+          - name: destination
+            description: Destination IATA airport code
+            tests: [not_null]
+          - name: departure_at
+            description: UTC departure datetime
+            tests: [not_null]
+          - name: price_eur
+            description: Total round-trip price in EUR
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  arguments:
+                    min_value: 1
+                    max_value: 5000
+          - name: fetched_at
+            description: When this record was fetched from the API
+            tests: [not_null]
+
+      - name: bronze_hostel_prices
+        description: >
+          Raw hostel price records. Populated in Phase 2 by the hostel ingestion pipeline.
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: hostel_hash
+            tests: [not_null, unique]
+          - name: city_code
+            tests: [not_null]
+          - name: price_per_night_eur
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  arguments:
+                    min_value: 1
+                    max_value: 500

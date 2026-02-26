@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base resets ─────────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-base text-primary antialiased;
+    background-image: radial-gradient(ellipse at 50% 0%, #1a0a2e 0%, #0A0B0F 60%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    @apply bg-orange-500/30 text-primary;
+  }
+}
+
+/* ── Utility classes ─────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Glass card surface */
+  .glass {
+    background: rgba(19, 20, 26, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* Deal tier gradients on text */
+  .text-gradient-hot {
+    background: linear-gradient(135deg, #FF6B35, #FF1744);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-gradient-good {
+    background: linear-gradient(135deg, #7C3AED, #3B82F6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Skeleton loading shimmer */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      #1C1D26 25%,
+      #24253080 50%,
+      #1C1D26 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* Score ring custom property */
+  .score-ring {
+    --score-color: #7C3AED;
+  }
+  .score-ring-hot {
+    --score-color: #FF6B35;
+  }
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0B0F;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2b38;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3b4a;
+}

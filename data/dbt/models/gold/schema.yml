@@ -1,0 +1,139 @@
+version: 2
+
+models:
+
+  # -- gold_route_stats ----------------------------------------------------------
+  - name: gold_route_stats
+    description: >
+      Price statistics per route (origin_iata -> dest_iata) computed over
+      rolling 30-day and 90-day windows. Used as the historical price baseline
+      for deal scoring in gold_deals.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [origin_iata, dest_iata]
+    columns:
+      - name: origin_iata
+        tests: [not_null]
+      - name: dest_iata
+        tests: [not_null]
+      - name: avg_price_90d
+        description: Average round-trip price over the last 90 days
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 5000
+      - name: min_price_90d
+        description: Historical minimum price in the last 90 days
+        tests:
+          - not_null
+      - name: sample_count_90d
+        description: Number of price observations in the 90-day window
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 2
+                max_value: 100000
+
+  # -- gold_deals ----------------------------------------------------------------
+  - name: gold_deals
+    description: >
+      Scored flight deals (0-100 Deal Score) ready for the API and user alerts.
+      Only includes deals cheaper than the 90-day average for that route.
+      Incrementally updated after each ingestion run.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [origin_iata, dest_iata, departure_at, return_at]
+    columns:
+      - name: origin_iata
+        tests: [not_null]
+      - name: dest_iata
+        tests: [not_null]
+      - name: departure_at
+        tests: [not_null]
+      - name: return_at
+        tests: [not_null]
+      - name: price_eur
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 1999
+      - name: avg_price_90d
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+      - name: savings_pct
+        description: >
+          Percentage cheaper than 90-day average.
+          Always positive because gold_deals only includes price < avg_price_90d.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+      - name: deal_score
+        description: Deal Score (0-100). Minimum 40 enforced in SQL.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 40
+                max_value: 100
+      - name: deal_tier
+        description: Human-readable tier label based on deal_score
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['hot', 'good', 'fair']
+      - name: is_direct
+        description: True if outbound leg is direct. NULL when stop data is unavailable.
+      - name: created_at
+        tests: [not_null]
+      - name: valid_until
+        tests: [not_null]
+
+  # -- gold_combo_deals ----------------------------------------------------------
+  - name: gold_combo_deals
+    description: >
+      Flight + hostel bundle deals. Joins gold_deals with silver_hostels on
+      (dest_iata, date overlap) to produce total trip cost packages.
+      Scored with combo_score (0-100): 60% flight deal quality + 40% hostel quality.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [flight_hash, hostel_id]
+    columns:
+      - name: flight_hash
+        tests: [not_null]
+      - name: hostel_id
+        tests: [not_null]
+      - name: total_combo_price_eur
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 5000
+      - name: combo_score
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 40
+                max_value: 100
+      - name: combo_tier
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['hot', 'good', 'fair']

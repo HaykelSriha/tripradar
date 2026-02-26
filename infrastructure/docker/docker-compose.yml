@@ -1,0 +1,177 @@
+version: "3.8"
+
+# ─── Airflow shared config ───────────────────────────────────────────────────
+x-airflow-common:
+  &airflow-common
+  image: apache/airflow:2.9.0
+  environment:
+    &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://trigradar:trigradar@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: "kSPf0sGVeSz0R9YqpBCB2nPFDuUSRkNJJq-1xIhtf30="
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
+    AIRFLOW__WEBSERVER__SECRET_KEY: "trigradar-airflow-secret-change-in-prod"
+    AIRFLOW__CORE__DEFAULT_TIMEZONE: "Europe/Paris"
+    AIRFLOW__LOGGING__BASE_LOG_FOLDER: "/opt/airflow/logs"
+    # Kiwi API key passed through to DAGs
+    KIWI_TEQUILA_API_KEY: "${KIWI_TEQUILA_API_KEY:-}"
+    INTERNAL_API_TOKEN: "${INTERNAL_API_TOKEN:-change-me}"
+    API_BASE_URL: "http://api:8000"
+    # Warehouse DB for DAG tasks
+    POSTGRES_HOST: "postgres"
+    POSTGRES_PORT: "5432"
+    WAREHOUSE_DB: "trigradar_dw"
+    POSTGRES_USER: "trigradar"
+    POSTGRES_PASSWORD: "trigradar"
+    # dbt connection (used by BashOperator dbt commands)
+    DBT_HOST: "postgres"
+    DBT_USER: "trigradar"
+    DBT_PASS: "trigradar"
+    # Python path for data scripts
+    PYTHONPATH: "/opt/airflow/scripts"
+    # Additional pip packages installed in Airflow containers at startup
+    # dbt-postgres, httpx, psycopg2 for DAG tasks
+    _PIP_ADDITIONAL_REQUIREMENTS: >-
+      httpx==0.28.1
+      psycopg2-binary==2.9.10
+      dbt-postgres==1.8.8
+  volumes:
+    - ../../data/airflow/dags:/opt/airflow/dags
+    - ../../data/airflow/logs:/opt/airflow/logs
+    - ../../data/airflow/plugins:/opt/airflow/plugins
+    # Mount data scripts so DAGs can import them
+    - ../../data/scripts:/opt/airflow/scripts
+    # Mount dbt project so BashOperator can run dbt commands
+    - ../../data/dbt:/opt/airflow/dbt
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+# ─── Services ────────────────────────────────────────────────────────────────
+services:
+
+  # ── PostgreSQL 16 + TimescaleDB ──────────────────────────────────────────────
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: trigradar
+      POSTGRES_PASSWORD: trigradar
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init.sh:/docker-entrypoint-initdb.d/01-init.sh
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trigradar -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Redis 7 ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Airflow Init (runs once to bootstrap) ────────────────────────────────────
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db upgrade && \
+        airflow users create \
+          --username admin \
+          --firstname Admin \
+          --lastname TripRadar \
+          --role Admin \
+          --email admin@trigradar.fr \
+          --password admin 2>/dev/null || echo "Admin user already exists" && \
+        airflow pools set kiwi_api_pool 3 "Limits concurrent Kiwi API calls to 3" 2>/dev/null || true
+        echo "Airflow initialised."
+    restart: on-failure
+
+  # ── Airflow Webserver ─────────────────────────────────────────────────────────
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Airflow Scheduler ─────────────────────────────────────────────────────────
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # ── FastAPI Backend ────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ../../apps/api
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ../../apps/api:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://trigradar:trigradar@postgres:5432/trigradar"
+      WAREHOUSE_URL: "postgresql+asyncpg://trigradar:trigradar@postgres:5432/trigradar_dw"
+      REDIS_URL: "redis://redis:6379/0"
+      CELERY_BROKER_URL: "redis://redis:6379/1"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/2"
+      SECRET_KEY: "${SECRET_KEY:-dev-secret-change-in-prod}"
+      ENVIRONMENT: "development"
+      DEBUG: "true"
+      INTERNAL_API_TOKEN: "${INTERNAL_API_TOKEN:-change-me}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Next.js Web App ────────────────────────────────────────────────────────────
+  web:
+    build:
+      context: ../../apps/web
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ../../apps/web:/app
+      - web_node_modules:/app/node_modules
+      - web_next_cache:/app/.next
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:8000"
+      NEXT_PUBLIC_APP_ENV: "development"
+    restart: unless-stopped
+
+# ─── Volumes ─────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+  web_node_modules:
+  web_next_cache:

@@ -1,0 +1,42 @@
+iata,city,city_fr,country,country_fr,flag,is_french_departure,is_popular_dest,popularity_tier
+CDG,Paris,Paris,France,France,FR,true,false,0
+ORY,Paris,Paris,France,France,FR,true,false,0
+LYS,Lyon,Lyon,France,France,FR,true,false,0
+MRS,Marseille,Marseille,France,France,FR,true,false,0
+BOD,Bordeaux,Bordeaux,France,France,FR,true,false,0
+NTE,Nantes,Nantes,France,France,FR,true,false,0
+NCE,Nice,Nice,France,France,FR,true,false,0
+TLS,Toulouse,Toulouse,France,France,FR,true,false,0
+LIL,Lille,Lille,France,France,FR,true,false,0
+PRG,Prague,Prague,Czech Republic,Tcheque,CZ,false,true,1
+BUD,Budapest,Budapest,Hungary,Hongrie,HU,false,true,1
+LIS,Lisbon,Lisbonne,Portugal,Portugal,PT,false,true,1
+OPO,Porto,Porto,Portugal,Portugal,PT,false,true,1
+BCN,Barcelona,Barcelone,Spain,Espagne,ES,false,true,1
+FCO,Rome,Rome,Italy,Italie,IT,false,true,1
+CIA,Rome (Ciampino),Rome,Italy,Italie,IT,false,true,1
+ATH,Athens,Athenes,Greece,Grece,GR,false,true,1
+DUB,Dublin,Dublin,Ireland,Irlande,IE,false,true,1
+AMS,Amsterdam,Amsterdam,Netherlands,Pays-Bas,NL,false,true,1
+WAW,Warsaw,Varsovie,Poland,Pologne,PL,false,true,2
+KRK,Krakow,Cracovie,Poland,Pologne,PL,false,true,2
+VIE,Vienna,Vienne,Austria,Autriche,AT,false,true,2
+BER,Berlin,Berlin,Germany,Allemagne,DE,false,true,2
+BRU,Brussels,Bruxelles,Belgium,Belgique,BE,false,true,2
+CPH,Copenhagen,Copenhague,Denmark,Danemark,DK,false,true,2
+ARN,Stockholm,Stockholm,Sweden,Suede,SE,false,true,2
+SVQ,Seville,Seville,Spain,Espagne,ES,false,true,2
+PMI,Palma de Mallorca,Majorque,Spain,Espagne,ES,false,true,2
+VLC,Valencia,Valence,Spain,Espagne,ES,false,true,2
+AGP,Malaga,Malaga,Spain,Espagne,ES,false,true,2
+HEL,Helsinki,Helsinki,Finland,Finlande,FI,false,true,2
+TLL,Tallinn,Tallinn,Estonia,Estonie,EE,false,true,2
+RIX,Riga,Riga,Latvia,Lettonie,LV,false,true,2
+VNO,Vilnius,Vilnius,Lithuania,Lituanie,LT,false,true,2
+BTS,Bratislava,Bratislava,Slovakia,Slovaquie,SK,false,true,2
+ZAG,Zagreb,Zagreb,Croatia,Croatie,HR,false,true,2
+SOF,Sofia,Sofia,Bulgaria,Bulgarie,BG,false,true,3
+OTP,Bucharest,Bucarest,Romania,Roumanie,RO,false,true,3
+BEG,Belgrade,Belgrade,Serbia,Serbie,RS,false,true,3
+SKP,Skopje,Skopje,North Macedonia,Macedoine du Nord,MK,false,true,3
+TIA,Tirana,Tirana,Albania,Albanie,AL,false,true,3

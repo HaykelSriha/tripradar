@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Logs
+*.log
+logs/
+data/airflow/logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Expo / React Native
+.expo/
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/dist/
+
+# Turbo
+.turbo/
+
+# Docker volumes (never commit data)
+data/airflow/logs/**
+!data/airflow/logs/.gitkeep
+
+# dbt
+data/dbt/target/
+data/dbt/dbt_packages/
+data/dbt/.user.yml
+
+# Test coverage
+coverage/
+htmlcov/
+
+# Secrets
+*.pem
+*.key
+service-account.json

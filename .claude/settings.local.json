@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker --version:*)",
+      "Bash(git add:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(docker info:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker context:*)",
+      "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "Bash(powershell.exe -Command \"Start-Process ''C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe''\")",
+      "Bash(pg_isready:*)",
+      "Bash(psql:*)",
+      "Bash(redis-cli ping:*)",
+      "Bash(winget:*)",
+      "Bash(powershell.exe -Command \"Get-Service -Name ''postgresql*'' | Select-Object Name, Status\")",
+      "Bash(powershell.exe -Command \"Start-Service -Name ''Redis''\")",
+      "Bash('C:\\\\Program Files\\\\Redis\\\\redis-server.exe' --daemonize yes)",
+      "Bash(powershell.exe -Command \"Get-Service -Name ''*redis*'' | Select-Object Name, Status\")",
+      "Bash('C:\\\\Program Files\\\\Redis\\\\redis-cli.exe' ping)",
+      "Bash(powershell.exe -Command \":*)",
+      "Bash(powershell.exe -Command \"Get-Content ''C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\data\\\\pg_hba.conf'' | Select-String -NotMatch ''^#'' | Where-Object {$_ToString\\(\\).Trim\\(\\) -ne ''''}\")",
+      "Bash(powershell.exe -Command \"Restart-Service -Name ''postgresql-x64-16''\")",
+      "Bash('C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\pg_ctl.exe':*)",
+      "Bash(PGPASSWORD=postgres 'C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe':*)",
+      "Bash(DATABASE_URL=\"postgresql+asyncpg://trigradar:trigradar@localhost:5432/trigradar\" WAREHOUSE_URL=\"postgresql+asyncpg://trigradar:trigradar@localhost:5432/trigradar_dw\" REDIS_URL=\"redis://localhost:6379/0\" SECRET_KEY=\"dev-secret-local-testing-only\" ENVIRONMENT=\"development\" py -3.11 -m alembic upgrade:*)",
+      "Bash(PGPASSWORD=postgres \"$PSQL\":*)",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(.venv/Scripts/python:*)",
+      "Bash(PGPASSWORD=postgres DATABASE_URL=\"postgresql+asyncpg://postgres:postgres@localhost:5432/trigradar\" .venv/Scripts/alembic upgrade:*)",
+      "Bash(PGPASSWORD=postgres POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres WAREHOUSE_DB=trigradar_dw .venv/Scripts/python:*)",
+      "Bash(POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres WAREHOUSE_DB=trigradar_dw .venv/Scripts/python:*)",
+      "Bash(POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres WAREHOUSE_DB=trigradar_dw AMADEUS_CLIENT_ID=gyuozwZYFm8Mr4WBQAjUBxAmaHP06Vfw AMADEUS_CLIENT_SECRET=EICALOAPZtebxC4c AMADEUS_ENV=test .venv/Scripts/python:*)",
+      "Bash(PYTHONIOENCODING=utf-8 .venv/Scripts/python:*)"
+    ]
+  }
+}
