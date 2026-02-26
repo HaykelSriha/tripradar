@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { Suspense, useCallback, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -9,7 +9,7 @@ import { DealCardSkeleton } from "@/components/DealCardSkeleton";
 import { FilterBar } from "@/components/FilterBar";
 import { useDealsInfinite } from "@/lib/queries";
 
-export default function DealsPage() {
+function DealsContent() {
   const params = useSearchParams();
 
   const filters = {
@@ -143,5 +143,31 @@ export default function DealsPage() {
 
       <Footer />
     </main>
+  );
+}
+
+export default function DealsPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen">
+        <Navbar />
+        <div className="pt-24 pb-16 px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="mb-8">
+              <div className="h-8 w-48 bg-white/5 rounded-lg mb-2 animate-pulse" />
+              <div className="h-4 w-32 bg-white/5 rounded animate-pulse" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 9 }).map((_, i) => (
+                <DealCardSkeleton key={i} />
+              ))}
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </main>
+    }>
+      <DealsContent />
+    </Suspense>
   );
 }
