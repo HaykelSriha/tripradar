@@ -1,6 +1,7 @@
 {
-  "name": "trigradar",
+  "name": "tripradar",
   "private": true,
+  "packageManager": "npm@10.7.0",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -21,7 +22,5 @@
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
   },
-  "optionalDependencies": {
-    "@next/swc-win32-x64-msvc": "^16.1.6"
-  }
+  "optionalDependencies": {}
 }
