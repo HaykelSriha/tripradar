@@ -12,6 +12,7 @@ Set AMADEUS_ENV=test for development, AMADEUS_ENV=production for real data.
 
 import logging
 import os
+import time
 from typing import Optional
 
 from amadeus import Client, ResponseError
@@ -80,6 +81,7 @@ class AmadeusClient:
         return_date: Optional[str] = None,
         max_results: int = 3,
         currency: str = "EUR",
+        max_retries: int = 3,
     ) -> list[dict]:
         """
         Search flight offers for a specific (origin, destination, departure_date).
@@ -94,36 +96,49 @@ class AmadeusClient:
           - Total price in EUR
 
         departure_date / return_date format: "YYYY-MM-DD"
+        Retries up to max_retries times on 429 with exponential backoff (2s, 4s, 8s).
         """
-        try:
-            kwargs: dict = {
-                "originLocationCode": origin,
-                "destinationLocationCode": destination,
-                "departureDate": departure_date,
-                "adults": 1,
-                "max": max_results,
-                "currencyCode": currency,
-            }
-            if return_date:
-                kwargs["returnDate"] = return_date
+        kwargs: dict = {
+            "originLocationCode": origin,
+            "destinationLocationCode": destination,
+            "departureDate": departure_date,
+            "adults": 1,
+            "max": max_results,
+            "currencyCode": currency,
+        }
+        if return_date:
+            kwargs["returnDate"] = return_date
 
-            response = self.amadeus.shopping.flight_offers_search.get(**kwargs)
-            results = response.data or []
-            if results:
-                logger.debug(
-                    f"[{origin}->{destination} {departure_date}] "
-                    f"{len(results)} offers, cheapest {results[0]['price']['total']} EUR"
-                )
-            return results
+        for attempt in range(max_retries + 1):
+            try:
+                response = self.amadeus.shopping.flight_offers_search.get(**kwargs)
+                results = response.data or []
+                if results:
+                    logger.debug(
+                        f"[{origin}->{destination} {departure_date}] "
+                        f"{len(results)} offers, cheapest {results[0]['price']['total']} EUR"
+                    )
+                return results
 
-        except ResponseError as exc:
-            # 400 = no flights found for this route/date — normal, log as debug
-            status = getattr(getattr(exc, "response", None), "status_code", 0)
-            if status == 400:
-                logger.debug(f"[{origin}->{destination} {departure_date}] No flights found")
-            else:
+            except ResponseError as exc:
+                status = getattr(getattr(exc, "response", None), "status_code", 0)
+                if status == 400:
+                    # No flights on this route/date — normal, not an error
+                    logger.debug(f"[{origin}->{destination} {departure_date}] No flights found")
+                    return []
+                if status == 429 and attempt < max_retries:
+                    wait = 2 ** (attempt + 1)  # 2s, 4s, 8s
+                    logger.warning(
+                        f"[{origin}->{destination}] Rate limited (429), "
+                        f"retry {attempt + 1}/{max_retries} in {wait}s"
+                    )
+                    time.sleep(wait)
+                    continue
                 logger.warning(f"[{origin}->{destination}] Amadeus error {status}: {exc}")
-            return []
-        except Exception as exc:
-            logger.error(f"[{origin}->{destination}] Unexpected error: {exc}")
-            return []
+                return []
+
+            except Exception as exc:
+                logger.error(f"[{origin}->{destination}] Unexpected error: {exc}")
+                return []
+
+        return []
