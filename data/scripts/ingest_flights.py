@@ -63,7 +63,7 @@ def ingest_from_airport(
     amadeus_env: str = "test",
     destinations: list[str] | None = None,
     n_date_windows: int = 2,
-    delay_between_calls: float = 1.5,
+    delay_between_calls: float = 0.5,
 ) -> dict:
     """
     For `airport`, search all EU destinations across N date windows and

@@ -13,55 +13,89 @@ on:
         type: choice
         options: ["false", "true"]
 
-jobs:
-  ingest-and-transform:
-    name: Ingest flights + dbt transforms
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+env:
+  WAREHOUSE_URL: ${{ secrets.WAREHOUSE_URL }}
+  PGSSLMODE: require
+  # Individual params kept for dbt profiles.yml
+  DBT_HOST: ${{ secrets.RENDER_DB_HOST }}
+  DBT_USER: ${{ secrets.RENDER_DB_USER }}
+  DBT_PASS: ${{ secrets.RENDER_DB_PASSWORD }}
+  DBT_DBNAME: ${{ secrets.RENDER_DB_NAME }}
+  # Amadeus API — using test/sandbox credentials for now
+  AMADEUS_CLIENT_ID: ${{ secrets.AMADEUS_CLIENT_ID }}
+  AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
+  AMADEUS_ENV: "test"
 
-    env:
-      # Full pre-built connection string stored directly in secret
-      WAREHOUSE_URL: ${{ secrets.WAREHOUSE_URL }}
-      PGSSLMODE: require
-      # Individual params kept for dbt profiles.yml
-      DBT_HOST: ${{ secrets.RENDER_DB_HOST }}
-      DBT_USER: ${{ secrets.RENDER_DB_USER }}
-      DBT_PASS: ${{ secrets.RENDER_DB_PASSWORD }}
-      DBT_DBNAME: ${{ secrets.RENDER_DB_NAME }}
-      # Amadeus API — using test/sandbox credentials for now
-      # Switch AMADEUS_ENV to "production" once Amadeus production access is approved
-      AMADEUS_CLIENT_ID: ${{ secrets.AMADEUS_CLIENT_ID }}
-      AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
-      AMADEUS_ENV: "test"
+jobs:
+  # Job 1: ensure DB tables exist before any parallel ingest starts
+  setup:
+    name: Setup warehouse tables
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: data/scripts/requirements.txt
 
-      - name: Install script dependencies
-        run: pip install -r data/scripts/requirements.txt
+      - run: pip install -r data/scripts/requirements.txt
 
-      - name: Set up bronze tables (idempotent)
+      - name: Create bronze tables (idempotent)
         working-directory: data/scripts
         run: python -c "from db_utils import setup_bronze_tables; setup_bronze_tables()"
 
-      - name: Ingest flights (all French airports)
-        working-directory: data/scripts
-        run: python ingest_flights.py
+  # Job 2: ingest one airport per parallel runner
+  ingest:
+    name: Ingest ${{ matrix.airport }}
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        airport: [CDG, ORY, LYS, MRS, BOD, NTE, NCE, TLS, LIL]
+      fail-fast: false
 
-      - name: Install dbt
-        if: ${{ github.event.inputs.skip_dbt != 'true' }}
-        run: pip install dbt-postgres==1.8.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: data/scripts/requirements.txt
+
+      - run: pip install -r data/scripts/requirements.txt
+
+      - name: Ingest flights from ${{ matrix.airport }}
+        working-directory: data/scripts
+        run: python ingest_flights.py --airport ${{ matrix.airport }}
+
+  # Job 3: dbt transforms after all airports are done
+  transform:
+    name: dbt transforms
+    needs: ingest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ github.event.inputs.skip_dbt != 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: data/scripts/requirements.txt
+
+      - run: pip install -r data/scripts/requirements.txt
+
+      - run: pip install dbt-postgres==1.8.0
 
       - name: Run dbt transforms
-        if: ${{ github.event.inputs.skip_dbt != 'true' }}
         working-directory: data/dbt
         run: |
           dbt deps
