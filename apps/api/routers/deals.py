@@ -3,6 +3,7 @@
 import hashlib
 import json
 import logging
+from datetime import date, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -29,25 +30,53 @@ def _cache_key_for_filters(**kwargs) -> str:
     return f"deals:list:{hashlib.md5(key_str.encode()).hexdigest()}"
 
 
+def _resolve_date_range(date_range: Optional[str]) -> tuple[Optional[date], Optional[date]]:
+    """Convert a shorthand date_range string to (depart_from, depart_until)."""
+    if not date_range:
+        return None, None
+    today = date.today()
+    mapping = {
+        "1m": timedelta(days=31),
+        "2m": timedelta(days=62),
+        "3m": timedelta(days=93),
+    }
+    delta = mapping.get(date_range)
+    if delta is None:
+        return None, None
+    return today, today + delta
+
+
 # ── GET /deals ────────────────────────────────────────────────────────────────
 
 @router.get("", response_model=PaginatedDeals)
 async def list_deals(
-    origin: Optional[str] = Query(None, description="IATA origin code, e.g. CDG"),
-    destination: Optional[str] = Query(None, description="IATA dest code, e.g. BCN"),
-    max_price: Optional[float] = Query(None, ge=0),
-    min_score: Optional[int] = Query(None, ge=0, le=100),
-    tier: Optional[str] = Query(None, pattern="^(hot|good|fair)$"),
-    is_direct: Optional[bool] = Query(None),
-    max_duration_days: Optional[int] = Query(None, ge=1),
+    origin: Optional[str] = Query(None, description="IATA origin airport, e.g. CDG"),
+    destinations: Optional[list[str]] = Query(None, description="IATA destination codes, e.g. BCN,LIS"),
+    # Date range: shorthand (1m/2m/3m) or explicit from/until
+    date_range: Optional[str] = Query(None, pattern="^(1m|2m|3m)$", description="Departure window: 1m, 2m or 3m from today"),
+    depart_from: Optional[date] = Query(None, description="Earliest departure date (YYYY-MM-DD)"),
+    depart_until: Optional[date] = Query(None, description="Latest departure date (YYYY-MM-DD)"),
+    # Price range
+    min_price: Optional[float] = Query(None, ge=0, description="Minimum price in EUR"),
+    max_price: Optional[float] = Query(None, ge=0, description="Maximum price in EUR"),
+    # Nights
+    min_nights: Optional[int] = Query(None, ge=1, description="Minimum trip length in nights"),
+    max_nights: Optional[int] = Query(None, ge=1, description="Maximum trip length in nights"),
+    # Pagination
     cursor: Optional[str] = Query(None, description="Pagination cursor: score:hash"),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_warehouse_db),
 ):
+    # Resolve shorthand date range
+    if date_range and not depart_from and not depart_until:
+        depart_from, depart_until = _resolve_date_range(date_range)
+
     cache_key = _cache_key_for_filters(
-        origin=origin, destination=destination, max_price=max_price,
-        min_score=min_score, tier=tier, is_direct=is_direct,
-        max_duration_days=max_duration_days, cursor=cursor, limit=limit,
+        origin=origin, destinations=destinations,
+        date_range=date_range, depart_from=depart_from, depart_until=depart_until,
+        min_price=min_price, max_price=max_price,
+        min_nights=min_nights, max_nights=max_nights,
+        cursor=cursor, limit=limit,
     )
     cached = await cache_get(cache_key)
     if cached:
@@ -60,24 +89,34 @@ async def list_deals(
     if origin:
         conditions.append("origin_iata = :origin")
         params["origin"] = origin.upper()
-    if destination:
-        conditions.append("dest_iata = :destination")
-        params["destination"] = destination.upper()
+
+    if destinations:
+        dest_list = [d.upper() for d in destinations]
+        placeholders = ", ".join(f":dest_{i}" for i in range(len(dest_list)))
+        conditions.append(f"dest_iata IN ({placeholders})")
+        for i, d in enumerate(dest_list):
+            params[f"dest_{i}"] = d
+
+    if depart_from is not None:
+        conditions.append("departure_at::date >= :depart_from")
+        params["depart_from"] = depart_from
+    if depart_until is not None:
+        conditions.append("departure_at::date <= :depart_until")
+        params["depart_until"] = depart_until
+
+    if min_price is not None:
+        conditions.append("price_eur >= :min_price")
+        params["min_price"] = min_price
     if max_price is not None:
         conditions.append("price_eur <= :max_price")
         params["max_price"] = max_price
-    if min_score is not None:
-        conditions.append("deal_score >= :min_score")
-        params["min_score"] = min_score
-    if tier:
-        conditions.append("deal_tier = :tier")
-        params["tier"] = tier
-    if is_direct is not None:
-        conditions.append("is_direct = :is_direct")
-        params["is_direct"] = is_direct
-    if max_duration_days is not None:
-        conditions.append("duration_days <= :max_duration_days")
-        params["max_duration_days"] = max_duration_days
+
+    if min_nights is not None:
+        conditions.append("duration_days >= :min_nights")
+        params["min_nights"] = min_nights
+    if max_nights is not None:
+        conditions.append("duration_days <= :max_nights")
+        params["max_nights"] = max_nights
 
     # Cursor-based pagination (deal_score DESC, flight_hash ASC)
     if cursor:
@@ -201,7 +240,6 @@ async def inspire_deals(
     result = await db.execute(sql, {"limit": limit})
     items = [DealResponse(**_row_to_dict(r)) for r in result.fetchall()]
 
-    # Short TTL for inspire (refreshes frequently)
     await cache_set(cache_key, [d.model_dump() for d in items], ttl=3600)
     return items
 
@@ -252,16 +290,12 @@ async def get_deal_hostels(
     db: AsyncSession = Depends(get_warehouse_db),
     app_db: AsyncSession = Depends(__import__("dependencies").get_db),
 ):
-    """
-    Returns hostel options matching the deal's destination and travel dates.
-    Reads from silver_hostels in the app database (written by ingest_hostels_dag).
-    """
+    """Returns hostel options matching the deal's destination and travel dates."""
     cache_key = f"deals:{deal_id}:hostels"
     cached = await cache_get(cache_key)
     if cached:
         return [HostelResponse(**h) for h in cached]
 
-    # First fetch the deal to get destination + dates
     deal_sql = text("SELECT dest_iata, departure_at, return_at, duration_days FROM gold_deals WHERE flight_hash = :id LIMIT 1")
     deal_result = await db.execute(deal_sql, {"id": deal_id})
     deal_row = deal_result.fetchone()
@@ -270,23 +304,19 @@ async def get_deal_hostels(
 
     row_dict = dict(deal_row._mapping)
     checkin_date = row_dict["departure_at"].date()
-    checkout_date = row_dict["return_at"].date() if row_dict["return_at"] else None
-    if not checkout_date:
+    if not row_dict["return_at"]:
         return []
 
-    # Query bronze_hostel_prices from the app DB
     hostel_sql = text("""
         SELECT
-            hostel_id, hostel_name AS name, city, dest_iata,
-            price_per_night_eur,
-            price_per_night_eur * nights AS total_hostel_price_eur,
-            rating, booking_url, image_url,
-            dorm_available, private_available, nights,
-            checkin::TEXT, checkout::TEXT
+            hostel_name AS name, city_code AS dest_iata,
+            price_per_night_eur, rating, booking_url,
+            hostel_hash AS hostel_id,
+            check_in::TEXT AS checkin, check_out::TEXT AS checkout
         FROM bronze_hostel_prices
         WHERE
-            dest_iata = :dest_iata
-            AND checkin BETWEEN :checkin - INTERVAL '1 day' AND :checkin + INTERVAL '1 day'
+            city_code = :dest_iata
+            AND check_in BETWEEN :checkin - INTERVAL '1 day' AND :checkin + INTERVAL '1 day'
         ORDER BY price_per_night_eur ASC
         LIMIT 5
     """)
@@ -307,16 +337,12 @@ async def get_price_history(
     days: int = Query(90, ge=7, le=365),
     db: AsyncSession = Depends(get_warehouse_db),
 ):
-    """
-    Returns 90-day price history for the route of a given deal using
-    TimescaleDB time_bucket aggregation on silver_flights.
-    """
+    """Returns 90-day price history for the route of a given deal."""
     cache_key = f"deals:{deal_id}:price-history:{days}"
     cached = await cache_get(cache_key)
     if cached:
         return PriceHistoryResponse(**cached)
 
-    # Get deal metadata
     deal_sql = text("SELECT origin_iata, dest_iata, price_eur, avg_price_90d FROM gold_deals WHERE flight_hash = :id LIMIT 1")
     deal_result = await db.execute(deal_sql, {"id": deal_id})
     deal_row = deal_result.fetchone()
@@ -325,7 +351,6 @@ async def get_price_history(
 
     dr = dict(deal_row._mapping)
 
-    # Time-bucket price aggregation (TimescaleDB)
     history_sql = text("""
         SELECT
             time_bucket('1 day', fetched_at)::DATE::TEXT AS date,
@@ -334,7 +359,7 @@ async def get_price_history(
         WHERE
             origin_iata = :origin
             AND dest_iata = :dest
-            AND fetched_at >= NOW() - INTERVAL ':days days'
+            AND fetched_at >= NOW() - (:days * INTERVAL '1 day')
         GROUP BY 1
         ORDER BY 1 ASC
     """)
@@ -347,7 +372,6 @@ async def get_price_history(
         history_rows = history_result.fetchall()
         points = [PricePoint(date=r[0], price=float(r[1])) for r in history_rows]
     except Exception:
-        # TimescaleDB may not have time_bucket — return empty history gracefully
         points = []
 
     response = PriceHistoryResponse(

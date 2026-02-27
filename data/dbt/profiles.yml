@@ -26,3 +26,5 @@ trigradar:
       schema: public
       threads: 8
       keepalives_idle: 0
+      sslmode: require
+      connect_timeout: 30

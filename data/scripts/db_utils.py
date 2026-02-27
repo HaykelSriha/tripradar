@@ -39,7 +39,7 @@ def get_warehouse_conn(
         dsn = dsn.replace("postgresql+asyncpg://", "postgresql://").replace("postgres://", "postgresql://")
         if "sslmode=" not in dsn:
             sep = "&" if "?" in dsn else "?"
-            dsn += f"{sep}sslmode={os.getenv('PGSSLMODE', 'prefer')}"
+            dsn += f"{sep}sslmode={os.getenv('PGSSLMODE', 'require')}"
         return psycopg2.connect(dsn)
 
     return psycopg2.connect(
@@ -48,7 +48,8 @@ def get_warehouse_conn(
         dbname=dbname or os.getenv("WAREHOUSE_DB", "trigradar_dw"),
         user=user or os.getenv("POSTGRES_USER", "postgres"),
         password=password or os.getenv("POSTGRES_PASSWORD", ""),
-        sslmode=os.getenv("PGSSLMODE", "prefer"),
+        sslmode=os.getenv("PGSSLMODE", "require"),
+        connect_timeout=30,
     )
 
 

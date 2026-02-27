@@ -1,6 +1,6 @@
 """Deal-related Pydantic schemas."""
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -58,12 +58,14 @@ class PaginatedDeals(BaseModel):
 
 class DealFilters(BaseModel):
     origin: Optional[str] = None
-    destination: Optional[str] = None
+    destinations: Optional[list[str]] = None
+    date_range: Optional[str] = None        # "1m" | "2m" | "3m"
+    depart_from: Optional[date] = None
+    depart_until: Optional[date] = None
+    min_price: Optional[float] = None
     max_price: Optional[float] = None
-    min_score: Optional[int] = None
-    tier: Optional[str] = None      # "hot" | "good" | "fair"
-    is_direct: Optional[bool] = None
-    max_duration_days: Optional[int] = None
+    min_nights: Optional[int] = None
+    max_nights: Optional[int] = None
 
 
 class HostelResponse(BaseModel):
@@ -71,16 +73,10 @@ class HostelResponse(BaseModel):
 
     hostel_id: str
     name: str
-    city: str
     dest_iata: str
     price_per_night_eur: float
-    total_hostel_price_eur: float
-    rating: float
-    booking_url: str
-    image_url: Optional[str] = None
-    dorm_available: bool
-    private_available: bool
-    nights: int
+    rating: Optional[float] = None
+    booking_url: Optional[str] = None
     checkin: str
     checkout: str
 
