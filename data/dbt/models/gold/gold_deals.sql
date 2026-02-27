@@ -45,6 +45,17 @@ WITH latest_silver AS (
     {% endif %}
 ),
 
+-- Keep only the cheapest offer per unique flight slot.
+-- silver_flights deduplicates on flight_hash, but the same
+-- (origin, dest, departure_at, return_at) can appear with different
+-- airlines or prices across ingestion runs.
+deduped AS (
+    SELECT DISTINCT ON (origin_iata, dest_iata, departure_at, return_at)
+        *
+    FROM latest_silver
+    ORDER BY origin_iata, dest_iata, departure_at, return_at, price_eur ASC
+),
+
 joined AS (
     SELECT
         f.*,
@@ -52,7 +63,7 @@ joined AS (
         s.p20_price_90d,
         s.min_price_90d,
         s.sample_count_90d
-    FROM latest_silver f
+    FROM deduped f
     INNER JOIN {{ ref('gold_route_stats') }} s
         ON  f.origin_iata = s.origin_iata
         AND f.dest_iata   = s.dest_iata
