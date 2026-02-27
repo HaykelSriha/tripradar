@@ -20,13 +20,13 @@ jobs:
     timeout-minutes: 30
 
     env:
-      # Render Postgres (single DB used for both app and warehouse)
-      POSTGRES_HOST: ${{ secrets.RENDER_DB_HOST }}
-      POSTGRES_PORT: "5432"
-      POSTGRES_USER: ${{ secrets.RENDER_DB_USER }}
-      POSTGRES_PASSWORD: ${{ secrets.RENDER_DB_PASSWORD }}
-      WAREHOUSE_DB: ${{ secrets.RENDER_DB_NAME }}
-      PGSSLMODE: require
+      # Full connection string — handles SSL correctly for Render
+      WAREHOUSE_URL: "postgresql://${{ secrets.RENDER_DB_USER }}:${{ secrets.RENDER_DB_PASSWORD }}@${{ secrets.RENDER_DB_HOST }}:5432/${{ secrets.RENDER_DB_NAME }}?sslmode=require"
+      # Individual params kept for dbt profiles.yml
+      DBT_HOST: ${{ secrets.RENDER_DB_HOST }}
+      DBT_USER: ${{ secrets.RENDER_DB_USER }}
+      DBT_PASS: ${{ secrets.RENDER_DB_PASSWORD }}
+      DBT_DBNAME: ${{ secrets.RENDER_DB_NAME }}
       # Amadeus API
       AMADEUS_CLIENT_ID: ${{ secrets.AMADEUS_CLIENT_ID }}
       AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
@@ -61,11 +61,6 @@ jobs:
       - name: Run dbt transforms
         if: ${{ github.event.inputs.skip_dbt != 'true' }}
         working-directory: data/dbt
-        env:
-          DBT_HOST: ${{ secrets.RENDER_DB_HOST }}
-          DBT_USER: ${{ secrets.RENDER_DB_USER }}
-          DBT_PASS: ${{ secrets.RENDER_DB_PASSWORD }}
-          DBT_DBNAME: ${{ secrets.RENDER_DB_NAME }}
         run: |
           dbt deps
           dbt run --target prod --exclude silver_hostels gold_combo_deals

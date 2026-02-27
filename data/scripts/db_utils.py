@@ -27,7 +27,21 @@ def get_warehouse_conn(
     user: str | None = None,
     password: str | None = None,
 ) -> psycopg2.extensions.connection:
-    """Return a psycopg2 connection to the warehouse (trigradar_dw) database."""
+    """Return a psycopg2 connection to the warehouse database.
+
+    Prefers WAREHOUSE_URL (full connection string) when set — this handles
+    SSL correctly for cloud providers like Render. Falls back to individual
+    POSTGRES_* env vars for local development.
+    """
+    dsn = os.getenv("WAREHOUSE_URL") or os.getenv("DATABASE_URL")
+    if dsn and not host:
+        # Strip asyncpg driver prefix if present
+        dsn = dsn.replace("postgresql+asyncpg://", "postgresql://").replace("postgres://", "postgresql://")
+        if "sslmode=" not in dsn:
+            sep = "&" if "?" in dsn else "?"
+            dsn += f"{sep}sslmode={os.getenv('PGSSLMODE', 'prefer')}"
+        return psycopg2.connect(dsn)
+
     return psycopg2.connect(
         host=host or os.getenv("POSTGRES_HOST", "localhost"),
         port=port or int(os.getenv("POSTGRES_PORT", "5432")),
