@@ -28,10 +28,11 @@ jobs:
       DBT_USER: ${{ secrets.RENDER_DB_USER }}
       DBT_PASS: ${{ secrets.RENDER_DB_PASSWORD }}
       DBT_DBNAME: ${{ secrets.RENDER_DB_NAME }}
-      # Amadeus API
+      # Amadeus API — using test/sandbox credentials for now
+      # Switch AMADEUS_ENV to "production" once Amadeus production access is approved
       AMADEUS_CLIENT_ID: ${{ secrets.AMADEUS_CLIENT_ID }}
       AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
-      AMADEUS_ENV: "production"
+      AMADEUS_ENV: "test"
 
     steps:
       - name: Checkout
