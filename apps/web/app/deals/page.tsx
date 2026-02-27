@@ -12,12 +12,17 @@ import { useDealsInfinite } from "@/lib/queries";
 function DealsContent() {
   const params = useSearchParams();
 
+  const destinationsRaw = params.getAll("destinations");
   const filters = {
     origin: params.get("origin") ?? undefined,
-    destination: params.get("destination") ?? undefined,
+    destinations: destinationsRaw.length > 0 ? destinationsRaw : undefined,
+    date_range: (params.get("date_range") as "1m" | "2m" | "3m" | null) ?? undefined,
+    depart_from: params.get("depart_from") ?? undefined,
+    depart_until: params.get("depart_until") ?? undefined,
+    min_price: params.get("min_price") ? Number(params.get("min_price")) : undefined,
     max_price: params.get("max_price") ? Number(params.get("max_price")) : undefined,
-    tier: params.get("tier") ?? undefined,
-    is_direct: params.get("is_direct") === "true" ? true : undefined,
+    min_nights: params.get("min_nights") ? Number(params.get("min_nights")) : undefined,
+    max_nights: params.get("max_nights") ? Number(params.get("max_nights")) : undefined,
     limit: 21,
   };
 
@@ -45,11 +50,19 @@ function DealsContent() {
   }, [loadMore]);
 
   // ── Active filter pills ────────────────────────────────────────────────────
+  const dateRangeLabel: Record<string, string> = { "1m": "Mois prochain", "2m": "2 mois", "3m": "3 mois" };
   const activeFilters = [
     params.get("origin") && `Depuis ${params.get("origin")}`,
-    params.get("max_price") && `≤ ${params.get("max_price")}€`,
-    params.get("tier") && { hot: "🔥 Chaud", good: "✨ Bon", fair: "💡 Correct" }[params.get("tier")!],
-    params.get("is_direct") === "true" && "Direct uniquement",
+    params.getAll("destinations").length > 0 && params.getAll("destinations").join(", "),
+    params.get("date_range") && dateRangeLabel[params.get("date_range")!],
+    params.get("depart_from") && `À partir du ${params.get("depart_from")}`,
+    params.get("depart_until") && `Avant le ${params.get("depart_until")}`,
+    params.get("min_price") && params.get("max_price")
+      ? `${params.get("min_price")}€ – ${params.get("max_price")}€`
+      : params.get("max_price") && `≤ ${params.get("max_price")}€`,
+    params.get("min_nights") && params.get("max_nights")
+      ? `${params.get("min_nights")}–${params.get("max_nights")} nuits`
+      : params.get("min_nights") && `≥ ${params.get("min_nights")} nuits`,
   ].filter(Boolean) as string[];
 
   return (

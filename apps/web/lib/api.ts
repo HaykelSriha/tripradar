@@ -160,12 +160,14 @@ async function apiFetch<T>(
 
 export interface DealsParams {
   origin?: string;
-  destination?: string;
+  destinations?: string[];
+  date_range?: "1m" | "2m" | "3m";
+  depart_from?: string;   // YYYY-MM-DD
+  depart_until?: string;  // YYYY-MM-DD
+  min_price?: number;
   max_price?: number;
-  min_score?: number;
-  tier?: string;
-  is_direct?: boolean;
-  max_duration_days?: number;
+  min_nights?: number;
+  max_nights?: number;
   cursor?: string;
   limit?: number;
 }
@@ -173,7 +175,14 @@ export interface DealsParams {
 function buildQuery(params: Record<string, unknown>): string {
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== "") q.set(k, String(v));
+    if (v === undefined || v === null || v === "") continue;
+    if (Array.isArray(v)) {
+      for (const item of v) {
+        if (item !== undefined && item !== null && item !== "") q.append(k, String(item));
+      }
+    } else {
+      q.set(k, String(v));
+    }
   }
   return q.toString() ? `?${q}` : "";
 }

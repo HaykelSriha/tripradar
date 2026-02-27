@@ -64,5 +64,6 @@ jobs:
         working-directory: data/dbt
         run: |
           dbt deps
+          dbt seed --target prod
           dbt run --target prod --exclude silver_hostels gold_combo_deals
           dbt test --target prod --exclude silver_hostels gold_combo_deals --store-failures
