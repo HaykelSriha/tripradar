@@ -34,6 +34,7 @@ def get_warehouse_conn(
         dbname=dbname or os.getenv("WAREHOUSE_DB", "trigradar_dw"),
         user=user or os.getenv("POSTGRES_USER", "postgres"),
         password=password or os.getenv("POSTGRES_PASSWORD", ""),
+        sslmode=os.getenv("PGSSLMODE", "prefer"),
     )
 
 
