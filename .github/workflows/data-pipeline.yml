@@ -26,6 +26,7 @@ jobs:
       POSTGRES_USER: ${{ secrets.RENDER_DB_USER }}
       POSTGRES_PASSWORD: ${{ secrets.RENDER_DB_PASSWORD }}
       WAREHOUSE_DB: ${{ secrets.RENDER_DB_NAME }}
+      PGSSLMODE: require
       # Amadeus API
       AMADEUS_CLIENT_ID: ${{ secrets.AMADEUS_CLIENT_ID }}
       AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
