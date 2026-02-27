@@ -20,8 +20,8 @@ jobs:
     timeout-minutes: 30
 
     env:
-      # Full connection string — handles SSL correctly for Render
-      WAREHOUSE_URL: "postgresql://${{ secrets.RENDER_DB_USER }}:${{ secrets.RENDER_DB_PASSWORD }}@${{ secrets.RENDER_DB_HOST }}:5432/${{ secrets.RENDER_DB_NAME }}?sslmode=require"
+      # Full pre-built connection string stored directly in secret
+      WAREHOUSE_URL: ${{ secrets.WAREHOUSE_URL }}
       # Individual params kept for dbt profiles.yml
       DBT_HOST: ${{ secrets.RENDER_DB_HOST }}
       DBT_USER: ${{ secrets.RENDER_DB_USER }}
@@ -45,6 +45,41 @@ jobs:
 
       - name: Install script dependencies
         run: pip install -r data/scripts/requirements.txt
+
+      - name: Diagnose DB connectivity
+        run: |
+          python3 - <<'PYEOF'
+          import os, re, psycopg2, socket
+
+          url = os.getenv("WAREHOUSE_URL", "")
+          print(f"WAREHOUSE_URL set: {bool(url)}")
+
+          m = re.search(r'@([^:/]+)', url)
+          host = m.group(1) if m else "unknown"
+          print(f"Target host: {host}")
+
+          try:
+              ip = socket.getaddrinfo(host, 5432)[0][4][0]
+              print(f"Resolved IP: {ip}")
+          except Exception as e:
+              print(f"DNS resolution failed: {e}")
+
+          try:
+              s = socket.create_connection((host, 5432), timeout=10)
+              s.close()
+              print("TCP port 5432: reachable")
+          except Exception as e:
+              print(f"TCP port 5432: FAILED - {e}")
+
+          base = re.sub(r'[?&]sslmode=\w+', '', url)
+          for mode in ('prefer', 'require', 'disable'):
+              try:
+                  conn = psycopg2.connect(f"{base}?sslmode={mode}&connect_timeout=15")
+                  print(f"sslmode={mode}: SUCCESS")
+                  conn.close()
+              except Exception as e:
+                  print(f"sslmode={mode}: FAILED - {e}")
+          PYEOF
 
       - name: Set up bronze tables (idempotent)
         working-directory: data/scripts
