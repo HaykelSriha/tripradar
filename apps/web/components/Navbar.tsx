@@ -14,8 +14,6 @@ export function Navbar() {
 
   const navLinks = [
     { href: "/deals", label: "Deals" },
-    { href: "/deals?tier=hot", label: "Deals chauds 🔥" },
-    { href: "/deals?is_direct=true", label: "Vols directs" },
   ];
 
   return (

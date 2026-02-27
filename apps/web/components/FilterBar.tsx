@@ -125,7 +125,7 @@ export function FilterBar() {
           onChange={(e) => setParam("origin", e.target.value)}
           className={INPUT_CLASS + " cursor-pointer"}
         >
-          <option value="">✈️ Départ</option>
+          <option value="">Départ</option>
           {FRENCH_AIRPORTS.map((a) => (
             <option key={a.value} value={a.value}>{a.label}</option>
           ))}
@@ -147,7 +147,7 @@ export function FilterBar() {
           }}
           className={INPUT_CLASS + " cursor-pointer"}
         >
-          <option value="">📅 Quand ?</option>
+          <option value="">Quand ?</option>
           {DATE_RANGE_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}

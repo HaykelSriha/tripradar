@@ -130,51 +130,16 @@ export default async function HomePage() {
             on te notifie dès que le deal parfait apparaît.
           </p>
 
-          {/* Search bar */}
-          <div
-            className="max-w-2xl mx-auto glass rounded-2xl p-4 flex flex-col sm:flex-row
-                        gap-3 border border-white/5"
+          {/* Search CTA */}
+          <Link
+            href="/deals"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl
+                       bg-orange-500 hover:bg-orange-400 text-white font-semibold text-base
+                       transition-colors"
           >
-            <select
-              className="flex-1 bg-elevated text-primary text-sm rounded-xl px-4 py-3
-                         border border-white/5 focus:outline-none focus:border-orange-500/50
-                         transition-colors cursor-pointer"
-              defaultValue=""
-            >
-              <option value="">✈️ Départ depuis...</option>
-              <option value="CDG">Paris Charles de Gaulle (CDG)</option>
-              <option value="ORY">Paris Orly (ORY)</option>
-              <option value="LYS">Lyon (LYS)</option>
-              <option value="MRS">Marseille (MRS)</option>
-              <option value="BOD">Bordeaux (BOD)</option>
-              <option value="NTE">Nantes (NTE)</option>
-              <option value="NCE">Nice (NCE)</option>
-              <option value="TLS">Toulouse (TLS)</option>
-            </select>
-
-            <select
-              className="flex-1 bg-elevated text-primary text-sm rounded-xl px-4 py-3
-                         border border-white/5 focus:outline-none focus:border-orange-500/50
-                         transition-colors cursor-pointer"
-              defaultValue=""
-            >
-              <option value="">💶 Budget max...</option>
-              <option value="50">≤ 50€</option>
-              <option value="100">≤ 100€</option>
-              <option value="150">≤ 150€</option>
-              <option value="250">≤ 250€</option>
-            </select>
-
-            <Link
-              href="/deals"
-              className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl
-                         bg-orange-500 hover:bg-orange-400 text-white font-semibold text-sm
-                         transition-colors whitespace-nowrap"
-            >
-              Trouver un deal
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
+            Trouver un deal
+            <ChevronRight className="w-5 h-5" />
+          </Link>
 
           <p className="text-xs text-muted mt-4">
             Destinations populaires : Prague · Lisbonne · Barcelone · Budapest · Porto · Dublin
@@ -188,7 +153,7 @@ export default async function HomePage() {
           <div className="flex items-center justify-between mb-10">
             <div>
               <h2 className="font-display font-bold text-2xl text-primary">
-                🔥 Deals du jour
+                Deals du jour
               </h2>
               <p className="text-secondary text-sm mt-1">
                 Sélectionnés par notre algorithme · Score Deal ≥ 70
@@ -212,12 +177,14 @@ export default async function HomePage() {
             </div>
           ) : (
             <div className="text-center py-16 glass rounded-3xl border border-white/5">
-              <p className="text-4xl mb-4">✈️</p>
+              <div className="inline-flex p-4 rounded-2xl bg-white/5 mb-4">
+                <Plane className="w-8 h-8 text-secondary" />
+              </div>
               <p className="text-secondary">
                 Les deals sont en cours de chargement. Reviens dans quelques minutes !
               </p>
               <p className="text-muted text-sm mt-2">
-                La pipeline Airflow tourne toutes les 6h.
+                La pipeline tourne toutes les 6h.
               </p>
             </div>
           )}
@@ -309,7 +276,10 @@ export default async function HomePage() {
                          border border-white/10 hover:border-orange-500/30
                          transition-all"
             >
-              <span className="text-2xl">🤖</span>
+              {/* Android icon */}
+              <svg className="w-6 h-6 text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.523 15.341a.5.5 0 0 1-.5.5H6.977a.5.5 0 0 1-.5-.5V9.5a5.523 5.523 0 0 1 11.046 0v5.841ZM7.5 17.5a1 1 0 1 0 2 0v-1h-2v1Zm7 0a1 1 0 1 0 2 0v-1h-2v1ZM8.1 4.21l-.97-1.68a.25.25 0 0 0-.433.25l.98 1.696A5.506 5.506 0 0 1 12 3.977c1.226 0 2.36.4 3.273 1.073l-.98-1.697a.25.25 0 0 0-.433.25l.97 1.68A5.498 5.498 0 0 1 12 3.977c-1.42 0-2.72.538-3.9 1.233Z"/>
+              </svg>
               <div className="text-left">
                 <p className="text-2xs text-secondary">Disponible sur</p>
                 <p className="font-semibold text-primary text-sm">Google Play</p>
@@ -320,7 +290,10 @@ export default async function HomePage() {
               className="flex items-center gap-3 px-6 py-4 rounded-2xl glass
                          border border-white/5 opacity-50 cursor-not-allowed"
             >
-              <span className="text-2xl">🍎</span>
+              {/* Apple icon */}
+              <svg className="w-6 h-6 text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+              </svg>
               <div className="text-left">
                 <p className="text-2xs text-secondary">Bientôt sur</p>
                 <p className="font-semibold text-primary text-sm">App Store</p>

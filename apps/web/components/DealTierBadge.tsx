@@ -9,7 +9,7 @@ export function DealTierBadge({ tier }: DealTierBadgeProps) {
         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full
                    text-2xs font-bold bg-deal-hot text-white uppercase tracking-wider"
       >
-        🔥 Deal chaud
+        Deal chaud
       </span>
     );
   }
@@ -19,7 +19,7 @@ export function DealTierBadge({ tier }: DealTierBadgeProps) {
         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full
                    text-2xs font-bold bg-deal-good text-white uppercase tracking-wider"
       >
-        ✨ Bonne affaire
+        Bonne affaire
       </span>
     );
   }
@@ -28,7 +28,7 @@ export function DealTierBadge({ tier }: DealTierBadgeProps) {
       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full
                  text-2xs font-bold bg-deal-fair text-white uppercase tracking-wider"
     >
-      💡 Bon plan
+      Bon plan
     </span>
   );
 }

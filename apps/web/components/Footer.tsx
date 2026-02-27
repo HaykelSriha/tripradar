@@ -13,13 +13,11 @@ export function Footer() {
           <span className="font-display font-semibold text-secondary">TripRadar</span>
         </div>
 
-        <p>© 2025 TripRadar · Fait avec ❤️ pour les voyageurs français</p>
-
         <div className="flex gap-6">
           <Link href="/privacy" className="hover:text-secondary transition-colors">
             Confidentialité
           </Link>
-          <Link href="/terms" className="hover:text-secondary transition-colors">
+          <Link href="/cgu" className="hover:text-secondary transition-colors">
             CGU
           </Link>
           <a

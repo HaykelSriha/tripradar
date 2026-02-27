@@ -104,7 +104,7 @@ export function DealCard({ deal, animationDelay = 0 }: DealCardProps) {
               {deal.origin_city} → {deal.dest_city}
             </h3>
             <p className="text-2xs text-secondary mt-0.5">
-              {deal.is_direct ? "✈️ Direct" : `✈️ ${deal.stops} escale${deal.stops > 1 ? "s" : ""}`}{" "}
+              {deal.is_direct ? "Direct" : `${deal.stops} escale${deal.stops > 1 ? "s" : ""}`}{" "}
               · {deal.airline}
             </p>
           </div>
@@ -131,7 +131,7 @@ export function DealCard({ deal, animationDelay = 0 }: DealCardProps) {
 
         {/* Dates */}
         <p className="text-xs text-secondary mb-4">
-          📅 {departure}
+          {departure}
           {returnDate ? ` → ${returnDate}` : ""} · {durationNights} nuit
           {durationNights > 1 ? "s" : ""}
         </p>
