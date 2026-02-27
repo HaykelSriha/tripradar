@@ -22,7 +22,7 @@ trigradar:
       port: 5432
       user: "{{ env_var('DBT_USER') }}"
       pass: "{{ env_var('DBT_PASS') }}"
-      dbname: trigradar_dw
+      dbname: "{{ env_var('DBT_DBNAME', 'trigradar_dw') }}"
       schema: public
       threads: 8
       keepalives_idle: 0
