@@ -83,7 +83,8 @@ async def list_deals(
         return PaginatedDeals(**cached)
 
     # Build WHERE clauses
-    conditions = ["valid_until > NOW()"]
+    # valid_until filter removed — show all existing deals regardless of expiry
+    conditions: list[str] = []
     params: dict = {"limit": limit + 1}
 
     if origin:
@@ -130,7 +131,7 @@ async def list_deals(
         except (ValueError, AttributeError):
             pass  # invalid cursor — ignore and return from beginning
 
-    where_clause = " AND ".join(conditions)
+    where_clause = " AND ".join(conditions) if conditions else "TRUE"
     sql = text(f"""
         SELECT
             flight_hash, origin_iata, dest_iata,
@@ -197,7 +198,6 @@ async def top_deals(
             price_score, price_tier_score, directness_score, duration_score, dest_score,
             deep_link, created_at, valid_until
         FROM gold_deals
-        WHERE valid_until > NOW()
         ORDER BY deal_score DESC
         LIMIT :limit
     """)
@@ -233,7 +233,7 @@ async def inspire_deals(
             price_score, price_tier_score, directness_score, duration_score, dest_score,
             deep_link, created_at, valid_until
         FROM gold_deals
-        WHERE valid_until > NOW() AND deal_score >= 60
+        WHERE deal_score >= 60
         ORDER BY RANDOM()
         LIMIT :limit
     """)

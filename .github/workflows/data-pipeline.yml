@@ -1,11 +1,17 @@
 name: Data Pipeline
 
+# DISABLED - Amadeus API quota exhausted.
+# Manual trigger only, no cron. Do not run until API quota is renewed.
+
 on:
-  schedule:
-    # Every 6 hours: 00:00, 06:00, 12:00, 18:00 UTC
-    - cron: "0 */6 * * *"
   workflow_dispatch:
     inputs:
+      dbt_only:
+        description: "Skip ingestion, only run dbt transforms (uses existing silver data)"
+        required: false
+        default: "false"
+        type: choice
+        options: ["false", "true"]
       skip_dbt:
         description: "Skip dbt transforms (ingestion only)"
         required: false
@@ -38,6 +44,7 @@ jobs:
     name: Setup warehouse tables
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    if: ${{ github.event.inputs.dbt_only != 'true' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -60,6 +67,7 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: ${{ github.event.inputs.dbt_only != 'true' }}
     strategy:
       matrix:
         airport: [CDG, ORY, LYS, MRS, BOD, NTE, NCE, TLS, LIL]
@@ -78,15 +86,20 @@ jobs:
 
       - name: Ingest flights from ${{ matrix.airport }}
         working-directory: data/scripts
-        run: python ingest_flights.py --airport ${{ matrix.airport }}
+        env:
+          AIRPORT: ${{ matrix.airport }}
+        run: python ingest_flights.py --airport "$AIRPORT"
 
-  # Job 3: dbt transforms after all airports are done
+  # Job 3: dbt transforms (runs after ingest, or standalone when dbt_only=true)
   transform:
     name: dbt transforms
-    needs: ingest
+    needs: [ingest]
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ github.event.inputs.skip_dbt != 'true' }}
+    if: |
+      always() &&
+      github.event.inputs.skip_dbt != 'true' &&
+      (github.event.inputs.dbt_only == 'true' || needs.ingest.result == 'success')
 
     steps:
       - uses: actions/checkout@v4
