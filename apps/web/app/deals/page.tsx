@@ -146,7 +146,7 @@ function DealsContent() {
 
               {!hasNextPage && allDeals.length > 0 && (
                 <p className="text-center text-secondary text-sm mt-8">
-                  Tu as tout vu ! 🎉 Reviens dans 6h pour de nouveaux deals.
+                  Tu as tout vu ! 🎉 Tous les deals disponibles sont affichés.
                 </p>
               )}
             </>

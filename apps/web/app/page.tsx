@@ -35,7 +35,7 @@ function HowItWorks() {
     {
       icon: Zap,
       title: "On surveille pour toi",
-      desc: "Notre moteur analyse 240 routes européennes toutes les 6h et score chaque deal.",
+      desc: "Notre moteur analyse 240 routes européennes et score chaque deal en temps réel.",
       color: "text-violet-400",
       bg: "bg-violet-500/10",
     },
@@ -112,7 +112,7 @@ export default async function HomePage() {
             <span className="text-xs text-orange-300 font-medium">
               {topDeals.length > 0
                 ? `${topDeals.length} deals actifs en ce moment`
-                : "Deals rechargés toutes les 6h"}
+                : "Deals vols Europe disponibles"}
             </span>
           </div>
 
@@ -181,10 +181,7 @@ export default async function HomePage() {
                 <Plane className="w-8 h-8 text-secondary" />
               </div>
               <p className="text-secondary">
-                Les deals sont en cours de chargement. Reviens dans quelques minutes !
-              </p>
-              <p className="text-muted text-sm mt-2">
-                La pipeline tourne toutes les 6h.
+                Aucun deal disponible pour le moment. Reviens bientôt !
               </p>
             </div>
           )}
